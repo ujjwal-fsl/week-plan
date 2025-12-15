@@ -121,10 +121,10 @@ function renderDayPanel(day, tasks) {
       </div>
       <div class="task-list" data-date="${dateKey}">
         ${dayTasks.map(task => renderTask(task)).join('')}
-      </div>
-      <div class="add-task-row" data-date="${dateKey}">
-        <button class="add-task-btn" data-date="${dateKey}">+ Add task</button>
-        <input type="text" class="add-task-input hidden" data-date="${dateKey}" placeholder="Enter task..." />
+        <div class="add-task-inline" data-date="${dateKey}">
+          <button class="add-task-btn" data-date="${dateKey}">+ New task</button>
+          <input type="text" class="add-task-input hidden" data-date="${dateKey}" placeholder="Enter task..." />
+        </div>
       </div>
     </div>
   `;
