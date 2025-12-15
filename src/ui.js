@@ -1,5 +1,5 @@
 // UI rendering and DOM manipulation
-import { createTask, toggleTaskCompletion, getTasksForDate } from './taskService.js';
+import { createTask, toggleTaskCompletion, updateTask, deleteTask, getTasksForDate } from './taskService.js';
 import { getWeekDays, formatDateKey, formatDateDisplay, formatWeekRange, isToday, isPast } from './weekUtils.js';
 
 let currentWeekStart = null;
@@ -29,7 +29,38 @@ export function initUI() {
       </div>
     </header>
     <main class="week-grid" id="week-grid"></main>
+    
+    <!-- Task Notes Modal -->
+    <div class="modal-overlay hidden" id="task-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title" id="modal-task-text"></h2>
+          <button class="modal-close" id="modal-close" aria-label="Close modal">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <label for="task-note" class="modal-label">Notes</label>
+          <textarea 
+            id="task-note" 
+            class="modal-textarea" 
+            placeholder="Add notes for this task..."
+            rows="5"
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button class="modal-delete-btn" id="modal-delete">Delete Task</button>
+          <button class="modal-save-btn" id="modal-save">Save</button>
+        </div>
+      </div>
+    </div>
   `;
+  
+  // Attach modal event listeners
+  attachModalEventListeners();
 }
 
 /**
@@ -148,9 +179,14 @@ function attachDayEventListeners() {
     input.addEventListener('blur', handleAddTaskBlur);
   });
   
-  // Task checkbox clicks
+  // Task checkbox clicks (toggle completion)
   document.querySelectorAll('.task-checkbox').forEach(checkbox => {
     checkbox.addEventListener('click', handleTaskToggle);
+  });
+  
+  // Task text clicks (open notes modal)
+  document.querySelectorAll('.task-text').forEach(text => {
+    text.addEventListener('click', handleTaskClick);
   });
 }
 
@@ -255,4 +291,117 @@ export function updateTasks(tasks) {
   if (currentWeekStart) {
     renderWeek(currentWeekStart, tasks);
   }
+}
+
+// ============================================
+// Modal functionality for task notes and delete
+// ============================================
+
+let currentTaskId = null;
+
+/**
+ * Attach event listeners to the modal
+ */
+function attachModalEventListeners() {
+  // Close button
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  
+  // Save button
+  document.getElementById('modal-save').addEventListener('click', handleSaveNote);
+  
+  // Delete button
+  document.getElementById('modal-delete').addEventListener('click', handleDeleteTask);
+  
+  // Click on overlay to close
+  document.getElementById('task-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'task-modal') {
+      closeModal();
+    }
+  });
+  
+  // Escape key to close
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      const modal = document.getElementById('task-modal');
+      if (!modal.classList.contains('hidden')) {
+        closeModal();
+      }
+    }
+  });
+}
+
+/**
+ * Handle click on task text to open modal
+ * @param {Event} e
+ */
+function handleTaskClick(e) {
+  const taskElement = e.target.closest('.task');
+  if (!taskElement) return;
+  
+  const taskId = taskElement.dataset.taskId;
+  const task = allTasks.find(t => t.id === taskId);
+  
+  if (task) {
+    openModal(task);
+  }
+}
+
+/**
+ * Open the task notes modal
+ * @param {Object} task
+ */
+function openModal(task) {
+  currentTaskId = task.id;
+  
+  const modal = document.getElementById('task-modal');
+  const titleEl = document.getElementById('modal-task-text');
+  const noteEl = document.getElementById('task-note');
+  
+  // Set task text as modal title
+  titleEl.textContent = task.text;
+  
+  // Set existing note or empty
+  noteEl.value = task.note || '';
+  
+  // Show modal
+  modal.classList.remove('hidden');
+  
+  // Focus on textarea
+  noteEl.focus();
+}
+
+/**
+ * Close the modal
+ */
+function closeModal() {
+  const modal = document.getElementById('task-modal');
+  modal.classList.add('hidden');
+  currentTaskId = null;
+}
+
+/**
+ * Handle saving the note
+ */
+async function handleSaveNote() {
+  if (!currentTaskId) return;
+  
+  const noteEl = document.getElementById('task-note');
+  const note = noteEl.value.trim();
+  
+  // Save note to Firebase
+  await updateTask(currentTaskId, { note });
+  
+  closeModal();
+}
+
+/**
+ * Handle deleting the task
+ */
+async function handleDeleteTask() {
+  if (!currentTaskId) return;
+  
+  // Delete from Firebase - realtime listener will update UI
+  await deleteTask(currentTaskId);
+  
+  closeModal();
 }
