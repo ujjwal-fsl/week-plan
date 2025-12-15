@@ -174,15 +174,22 @@ function handleAddTaskClick(e) {
  */
 async function handleAddTaskKeydown(e) {
   if (e.key === 'Enter') {
-    const text = e.target.value.trim();
-    const date = e.target.dataset.date;
+    e.preventDefault();
+    const input = e.target;
+    const text = input.value.trim();
+    const date = input.dataset.date;
+    
+    // Prevent double submission from keydown + blur race condition
+    if (input.dataset.submitting === 'true') return;
     
     if (text) {
+      input.dataset.submitting = 'true';
+      input.value = ''; // Clear immediately to prevent re-submission
       await createTask(text, date);
-      e.target.value = '';
+      delete input.dataset.submitting;
     }
     
-    hideTaskInput(e.target);
+    hideTaskInput(input);
   } else if (e.key === 'Escape') {
     e.target.value = '';
     hideTaskInput(e.target);
@@ -194,15 +201,24 @@ async function handleAddTaskKeydown(e) {
  * @param {Event} e
  */
 async function handleAddTaskBlur(e) {
-  const text = e.target.value.trim();
-  const date = e.target.dataset.date;
+  const input = e.target;
+  const text = input.value.trim();
+  const date = input.dataset.date;
   
-  if (text) {
-    await createTask(text, date);
-    e.target.value = '';
+  // Skip if already submitting (from keydown handler)
+  if (input.dataset.submitting === 'true') {
+    hideTaskInput(input);
+    return;
   }
   
-  hideTaskInput(e.target);
+  if (text) {
+    input.dataset.submitting = 'true';
+    input.value = ''; // Clear immediately to prevent re-submission
+    await createTask(text, date);
+    delete input.dataset.submitting;
+  }
+  
+  hideTaskInput(input);
 }
 
 /**
