@@ -184,9 +184,9 @@ function attachDayEventListeners() {
     checkbox.addEventListener('click', handleTaskToggle);
   });
   
-  // Task text clicks (open notes modal)
-  document.querySelectorAll('.task-text').forEach(text => {
-    text.addEventListener('click', handleTaskClick);
+  // Task row clicks (open notes modal)
+  document.querySelectorAll('.task').forEach(taskRow => {
+    taskRow.addEventListener('click', handleTaskClick);
   });
 }
 
@@ -274,6 +274,9 @@ function hideTaskInput(input) {
  * @param {Event} e
  */
 async function handleTaskToggle(e) {
+  // Stop propagation so clicking checkbox doesn't also open the modal
+  e.stopPropagation();
+  
   const taskId = e.currentTarget.dataset.taskId;
   const task = allTasks.find(t => t.id === taskId);
   
